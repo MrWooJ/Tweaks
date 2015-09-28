@@ -90,7 +90,7 @@
   _rgbColorComponents = _FBHSL2RGB(_hslColorComponents);
   _colorSampleCell.backgroundColor = [UIColor colorWithRed:_rgbColorComponents.red/255.0 green:_rgbColorComponents.green/255.0 blue:_rgbColorComponents.blue/255.0 alpha:_rgbColorComponents.alpha];
 
-  for (int i = 0; i < _FBHSBAColorComponentsSize; ++i) {
+  for (int i = 0; i < _FBHSLAColorComponentsSize; ++i) {
     _FBColorComponentCell *cell = _colorComponentCells[i];
     
     NSArray *colorArray = [self colorsForMask:_hslColorComponents forColorComponent:i];
@@ -98,7 +98,7 @@
     UIColor *secondColor = [colorArray lastObject];
     cell.colors = @[(id)firstColor.CGColor, (id)secondColor.CGColor];
 
-    cell.value = [components[i] floatValue] * (i == _FBHSBAColorComponentsSize - 1 ? [_maxValues[i] floatValue] : 1);
+    cell.value = [components[i] floatValue] * (i == _FBHSLAColorComponentsSize - 1 ? [_maxValues[i] floatValue] : 1);
   }
 }
 
@@ -107,7 +107,7 @@
   NSArray *components = [self _colorComponentsWithHSL:_hslColorComponents];
 
   NSMutableArray *tmp = [NSMutableArray array];
-  for (int i = 0; i < _FBHSBAColorComponentsSize; ++i) {
+  for (int i = 0; i < _FBHSLAColorComponentsSize; ++i) {
     _FBColorComponentCell *cell = [[_FBColorComponentCell alloc] init];
     
     NSArray *colorArray = [self colorsForMask:_hslColorComponents forColorComponent:i];
@@ -115,8 +115,8 @@
     UIColor *secondColor = [colorArray lastObject];
     cell.colors = @[(id)firstColor.CGColor, (id)secondColor.CGColor];
     
-    cell.format = i == _FBHSBAColorComponentsSize - 1 ? @"%.f" : @"%.2f";
-    cell.value = [components[i] floatValue] * (i == _FBHSBAColorComponentsSize - 1 ? [_maxValues[i] floatValue] : 1);
+    cell.format = i == _FBHSLAColorComponentsSize - 1 ? @"%.f" : @"%.2f";
+    cell.value = [components[i] floatValue] * (i == _FBHSLAColorComponentsSize - 1 ? [_maxValues[i] floatValue] : 1);
     cell.title = _titles[i];
     cell.maximumValue = [_maxValues[i] floatValue];
     cell.delegate = self;
