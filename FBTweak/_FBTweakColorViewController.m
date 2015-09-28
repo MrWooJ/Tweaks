@@ -11,6 +11,10 @@
 #import "_FBTweakColorViewControllerHSBDataSource.h"
 #import "_FBTweakColorViewControllerRGBDataSource.h"
 #import "_FBTweakColorViewControllerHSLDataSource.h"
+#import "_FBTweakColorViewControllerCMYKDataSource.h"
+#import "_FBTweakColorViewControllerLABDataSource.h"
+#import "_FBTweakColorViewControllerYPBPRDataSource.h"
+#import "_FBTweakColorViewControllerXYZDataSource.h"
 #import "_FBKeyboardManager.h"
 #import "FBTweak.h"
 
@@ -26,6 +30,10 @@ static CGFloat const _FBColorWheelCellHeight = 220.0f;
   NSObject<_FBTweakColorViewControllerDataSource> *_rgbDataSource;
   NSObject<_FBTweakColorViewControllerDataSource> *_hsbDataSource;
   NSObject<_FBTweakColorViewControllerDataSource> *_hslDataSource;
+  NSObject<_FBTweakColorViewControllerDataSource> *_cmykDataSource;
+  NSObject<_FBTweakColorViewControllerDataSource> *_labDataSource;
+  NSObject<_FBTweakColorViewControllerDataSource> *_ypbprDataSource;
+  NSObject<_FBTweakColorViewControllerDataSource> *_xyzDataSource;
   FBTweak *_tweak;
   _FBKeyboardManager *_keyboardManager;
   UITableView *_tableView;
@@ -39,9 +47,17 @@ static CGFloat const _FBColorWheelCellHeight = 220.0f;
     _rgbDataSource = [[_FBTweakColorViewControllerRGBDataSource alloc] init];
     _hsbDataSource = [[_FBTweakColorViewControllerHSBDataSource alloc] init];
     _hslDataSource = [[_FBTweakColorViewControllerHSLDataSource alloc] init];
+    _cmykDataSource = [[_FBTweakColorViewControllerCMYKDataSource alloc] init];
+    _labDataSource = [[_FBTweakColorViewControllerLABDataSource alloc] init];
+    _ypbprDataSource = [[_FBTweakColorViewControllerYPbPrDataSource alloc] init];
+    _xyzDataSource = [[_FBTweakColorViewControllerXYZDataSource alloc] init];
     [_rgbDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
     [_hsbDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
     [_hslDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
+    [_cmykDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
+    [_labDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
+    [_ypbprDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
+    [_xyzDataSource addObserver:self forKeyPath:NSStringFromSelector(@selector(value)) options:NSKeyValueObservingOptionNew context:kContext];
   }
   return self;
 }
@@ -51,6 +67,10 @@ static CGFloat const _FBColorWheelCellHeight = 220.0f;
   [_rgbDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
   [_hsbDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
   [_hslDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
+  [_cmykDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
+  [_labDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
+  [_ypbprDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
+  [_xyzDataSource removeObserver:self forKeyPath:NSStringFromSelector(@selector(value))];
 }
 
 - (void)viewDidLoad
@@ -64,10 +84,33 @@ static CGFloat const _FBColorWheelCellHeight = 220.0f;
 
   _keyboardManager = [[_FBKeyboardManager alloc] initWithViewScrollView:_tableView];
 
-  UISegmentedControl *segmentedControl = [[UISegmentedControl alloc] initWithItems:@[@"RGB", @"HSB", @"HSL"]];
+  UIToolbar *toolbar = [[UIToolbar alloc]initWithFrame:CGRectMake(0, self.view.frame.size.height - 40 , self.view.frame.size.width, 40)];
+  
+  UISegmentedControl *segmentedControl = [[UISegmentedControl alloc] initWithItems:@[@"RGB", @"HSB", @"HSL", @"CMYK", @"LAB", @"YPbPr", @"XYZ"]];
   [segmentedControl addTarget:self action:@selector(_segmentControlDidChangeValue:) forControlEvents:UIControlEventValueChanged];
-  [segmentedControl sizeToFit];
-  self.navigationItem.titleView = segmentedControl;
+  [toolbar addSubview:segmentedControl];
+  [segmentedControl setFrame:CGRectMake(5,5, self.view.frame.size.width - 10, 30)];
+  
+  NSLayoutConstraint *heightConstraint = [NSLayoutConstraint constraintWithItem:segmentedControl
+                                                                attribute:NSLayoutAttributeHeight
+                                                                relatedBy:NSLayoutRelationEqual
+                                                                   toItem:nil
+                                                                attribute:NSLayoutAttributeNotAnAttribute
+                                                               multiplier:1
+                                                                 constant:30];
+  [segmentedControl addConstraint:heightConstraint];
+  
+  NSLayoutConstraint *widthConstraint = [NSLayoutConstraint constraintWithItem:segmentedControl
+                                                                attribute:NSLayoutAttributeWidth
+                                                                relatedBy:NSLayoutRelationEqual
+                                                                   toItem:nil
+                                                                attribute:NSLayoutAttributeNotAnAttribute
+                                                               multiplier:1
+                                                                 constant:(self.view.frame.size.width - 10)];
+  [segmentedControl addConstraint:widthConstraint];
+  
+  [self.view addSubview:toolbar];
+
   segmentedControl.selectedSegmentIndex = 0;
   [self _segmentControlDidChangeValue:segmentedControl];
 }
@@ -123,6 +166,18 @@ static CGFloat const _FBColorWheelCellHeight = 220.0f;
       break;
     case 2:
       dataSource = _hslDataSource;
+      break;
+    case 3:
+      dataSource = _cmykDataSource;
+      break;
+    case 4:
+      dataSource = _labDataSource;
+      break;
+    case 5:
+      dataSource = _ypbprDataSource;
+      break;
+    case 6:
+      dataSource = _xyzDataSource;
       break;
       
     default:
