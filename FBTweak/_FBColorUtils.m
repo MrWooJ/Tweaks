@@ -10,12 +10,22 @@
 #import "_FBColorUtils.h"
 
 CGFloat const _FBRGBColorComponentMaxValue = 255.0f;
+CGFloat const _FBLABLightnessColorComponentMaxValue = 100.0f;
+CGFloat const _FBLABColorComponentMaxValue = 128.0f;
+CGFloat const _FBYPBPR_YColorComponentMaxValue = 255.0f;
+CGFloat const _FBYPBPR_PBPRColorComponentMaxValue = 127.0f;
+CGFloat const _FBXYZColorComponentMaxValue = 100.0f;
 CGFloat const _FBAlphaComponentMaxValue = 100.0f;
 CGFloat const _FBHSBColorComponentMaxValue = 1.0f;
 CGFloat const _FBHSLColorComponentMaxValue = 1.0f;
+CGFloat const _FBCMYKColorComponentMaxValue = 1.0f;
 NSUInteger const _FBRGBAColorComponentsSize = 4;
 NSUInteger const _FBHSBAColorComponentsSize = 4;
 NSUInteger const _FBHSLAColorComponentsSize = 4;
+NSUInteger const _FBCMYKAColorComponentsSize = 5;
+NSUInteger const _FBLABAColorComponentsSize = 4;
+NSUInteger const _FBYPBPRAColorComponentsSize = 4;
+NSUInteger const _FBXYZAColorComponentsSize = 4;
 
 extern HSB _FBRGB2HSB(RGB rgb)
 {
@@ -164,6 +174,179 @@ extern RGB _FBHSL2RGB(HSL hsl)
   
   return (RGB){.red = (r * 255.0f), .green = (g * 255.0f), .blue = (b * 255.0f), .alpha = hsl.alpha};
 }
+
+extern CMYK _FBRGB2CMYK(RGB rgb)
+{
+  double R = rgb.red;
+  double G = rgb.green;
+  double B = rgb.blue;
+
+  double K = 1 - MAX((MAX(R, G)), B);
+  double C = (1 - R - K) / (1 - K);
+  double M = (1 - G - K) / (1 - K);
+  double Y = (1 - B - K) / (1 - K);
+  
+  return (CMYK){.cyan = C * 100, .magenta = M * 100, .yellow = Y * 100, .key = K * 100, .alpha = rgb.alpha};
+}
+
+extern RGB _FBCMYK2RGB(CMYK cmyk)
+{
+  double C = cmyk.cyan / 100;
+  double M = cmyk.magenta / 100;
+  double Y = cmyk.yellow / 100;
+  double K = cmyk.key / 100;
+  
+  double R = 255 * (1 - C) * (1 - K);
+  double G = 255 * (1 - M) * (1 - K);
+  double B = 255 * (1 - Y) * (1 - K);
+  
+  return (RGB){.red = R, .green = G, .blue = B, .alpha = cmyk.alpha};
+}
+
+extern LAB _FBRGB2LAB(RGB rgb)
+{
+  float var_R = rgb.red;
+  float var_G = rgb.green;
+  float var_B = rgb.blue;
+  
+  if (var_R > 0.04045) var_R = pow(((var_R + 0.055) / 1.055), 2.4);
+  else var_R = var_R / 12.92;
+  if (var_G > 0.04045) var_G = pow(((var_G + 0.055) / 1.055), 2.4);
+  else var_G = var_G / 12.92;
+  if (var_B > 0.04045) var_B = pow(((var_B + 0.055) / 1.055), 2.4);
+  else var_B = var_B / 12.92;
+  
+  var_R = var_R * 100.;
+  var_G = var_G * 100.;
+  var_B = var_B * 100.;
+  
+  float X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+  float Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+  float Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+  
+  float var_X = X / 95.047 ;
+  float var_Y = Y / 100.000;
+  float var_Z = Z / 108.883;
+  
+  if (var_X > 0.008856) var_X = pow(var_X , (1./3.));
+  else var_X = (7.787 * var_X) + (16. / 116. );
+  if (var_Y > 0.008856) var_Y = pow(var_Y , (1./3.));
+  else var_Y = (7.787 * var_Y) + (16. / 116. );
+  if (var_Z > 0.008856) var_Z = pow(var_Z , (1./3.));
+  else var_Z = (7.787 * var_Z) + (16. / 116.);
+  
+  return (LAB) {.lightness = (116. * var_Y) - 16. , .a = 500. * (var_X - var_Y) , .b = 200. * (var_Y - var_Z), .alpha = rgb.alpha};
+}
+
+extern RGB _FBLAB2RGB(LAB lab)
+{
+  double l_s = lab.lightness;
+  double a_s = lab.a;
+  double b_s = lab.b;
+  
+  float var_Y = (l_s + 16.) / 116.;
+  float var_X = a_s / 500. + var_Y;
+  float var_Z = var_Y - b_s / 200.;
+  
+  if (pow(var_Y,3) > 0.008856) var_Y = pow(var_Y,3);
+  else var_Y = (var_Y - 16. / 116.) / 7.787;
+  if (pow(var_X,3) > 0.008856) var_X = pow(var_X,3);
+  else var_X = (var_X - 16. / 116.) / 7.787;
+  if (pow(var_Z,3) > 0.008856) var_Z = pow(var_Z,3);
+  else var_Z = (var_Z - 16. / 116.) / 7.787;
+  
+  float X = 95.047 * var_X ;
+  float Y = 100.000 * var_Y ;
+  float Z = 108.883 * var_Z ;
+  
+  var_X = X / 100. ;
+  var_Y = Y / 100. ;
+  var_Z = Z / 100. ;
+  
+  float var_R = var_X *  3.2406 + var_Y * -1.5372 + var_Z * -0.4986;
+  float var_G = var_X * -0.9689 + var_Y *  1.8758 + var_Z *  0.0415;
+  float var_B = var_X *  0.0557 + var_Y * -0.2040 + var_Z *  1.0570;
+  
+  if (var_R > 0.0031308) var_R = 1.055 * pow(var_R , (1 / 2.4)) - 0.055;
+  else var_R = 12.92 * var_R;
+  if (var_G > 0.0031308) var_G = 1.055 * pow(var_G , (1 / 2.4)) - 0.055;
+  else var_G = 12.92 * var_G;
+  if (var_B > 0.0031308) var_B = 1.055 * pow(var_B , (1 / 2.4)) - 0.055;
+  else var_B = 12.92 * var_B;
+  
+  return (RGB){.red = var_R * 255., .green = var_G * 255., .blue = var_B * 255., .alpha = lab.alpha};
+}
+
+extern YPBPR _FBRGB2YPbPr(RGB rgb)
+{
+  double R = rgb.red * 255.;
+  double G = rgb.green * 255.;
+  double B = rgb.blue * 255.;
+  
+  double Y = 0.213 * R + 0.715 * G + 0.072 * B;
+  double Pb = -0.115 * R + -0.385 * G + 0.5 * B;
+  double Pr = 0.5 * R + -0.454 * G + -0.046 * B;
+  
+  return (YPBPR){.y = Y, .pb = Pb, .pr = Pr, .alpha = rgb.alpha};
+}
+
+extern RGB _FBYPbPr2RGB(YPBPR ypbpr)
+{
+  double Y = ypbpr.y;
+  double Pb = ypbpr.pb;
+  double Pr = ypbpr.pr;
+  
+  double R = Y + 1.575 * Pr;
+  double G = Y + -0.187 * Pb + -0.468 * Pr;
+  double B = Y + 1.856 * Pb;
+  
+  return (RGB){.red = R, .green = G, .blue = B, .alpha = ypbpr.alpha};
+}
+
+extern XYZ _FBRGB2XYZ(RGB rgb)
+{
+  float var_R = rgb.red;
+  float var_G = rgb.green;
+  float var_B = rgb.blue;
+  
+  if (var_R > 0.04045) var_R = pow(((var_R + 0.055) / 1.055), 2.4);
+  else var_R = var_R / 12.92;
+  if (var_G > 0.04045) var_G = pow(((var_G + 0.055) / 1.055), 2.4);
+  else var_G = var_G / 12.92;
+  if (var_B > 0.04045) var_B = pow(((var_B + 0.055) / 1.055), 2.4);
+  else var_B = var_B / 12.92;
+  
+  var_R = var_R * 100.;
+  var_G = var_G * 100.;
+  var_B = var_B * 100.;
+  
+  float X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+  float Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+  float Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+
+  return (XYZ) {.x = X, .y = Y, .z = Z, .alpha = rgb.alpha};
+}
+
+extern RGB _FBXYZ2RGB(XYZ xyz)
+{
+  double var_X = xyz.x / 100;
+  double var_Y = xyz.y / 100;
+  double var_Z = xyz.z / 100;
+  
+  double var_R = var_X *  3.2406 + var_Y * -1.5372 + var_Z * -0.4986;
+  double var_G = var_X * -0.9689 + var_Y *  1.8758 + var_Z *  0.0415;
+  double var_B = var_X *  0.0557 + var_Y * -0.2040 + var_Z *  1.0570;
+  
+  if (var_R > 0.0031308) var_R = 1.055 * (pow(var_R, ( 1 / 2.4))) - 0.055;
+  else var_R = 12.92 * var_R;
+  if (var_G > 0.0031308) var_G = 1.055 * (pow(var_G, ( 1 / 2.4 ))) - 0.055;
+  else var_G = 12.92 * var_G;
+  if (var_B > 0.0031308) var_B = 1.055 * (pow(var_B, ( 1 / 2.4 ))) - 0.055;
+  else var_B = 12.92 * var_B;
+  
+  return (RGB){.red = var_R * 255, .green = var_G * 255, .blue = var_B * 255, .alpha = xyz.alpha};
+}
+
 extern RGB _FBRGBColorComponents(UIColor *color)
 {
   RGB result;
